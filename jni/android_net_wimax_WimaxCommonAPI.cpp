@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#define LOG_TAG "wimax"
+#define LOG_TAG "WimaxJNI"
 
 #include "jni.h"
 #include <utils/misc.h>
@@ -50,12 +50,26 @@ static struct fieldIds {
     jfieldID leaseDuration;
 } dhcpInfoFieldIds;
 
+// load driver / two versions for compat
+static jboolean com_htc_net_wimax_startDriver(JNIEnv* env, jobject clazz)
+{
+    int rval = ::loadWimaxDriver();
+
+    return (jboolean)(rval == 0);
+}
+
+
 static jboolean com_htc_net_wimax_loadWimaxDriver(JNIEnv* env, jobject clazz)
 {
     int rval = ::loadWimaxDriver();
-    /* char buffer[100];
-    sprintf (buffer, "com_htc_net_wimax_loadWimaxDriver() - rval = %d\n", rval);
-    LOGI(buffer); */
+
+    return (jboolean)(rval == 0);
+}
+
+// unload driver / two versions for compat 
+static jboolean com_htc_net_wimax_stopDriver(JNIEnv* env, jobject clazz)
+{
+    int rval = ::unloadWimaxDriver();
 
     return (jboolean)(rval == 0);
 }
@@ -63,20 +77,14 @@ static jboolean com_htc_net_wimax_loadWimaxDriver(JNIEnv* env, jobject clazz)
 static jboolean com_htc_net_wimax_unloadWimaxDriver(JNIEnv* env, jobject clazz)
 {
     int rval = ::unloadWimaxDriver();
-    //int rval = 0;
-    /* char buffer[100];
-    sprintf (buffer, "com_htc_net_wimax_unloadWimaxDriver() - rval = %d\n", rval);
-    LOGI(buffer); */
 
     return (jboolean)(rval == 0);
 }
 
+// wimax daemon (sequansd)
 static jboolean com_htc_net_wimax_startWimaxDaemon(JNIEnv* env, jobject clazz)
 {
     int rval = ::startWimaxDaemon();
-    /* char buffer[100];
-    sprintf (buffer, "com_htc_net_wimax_startWimaxDaemon() - rval = %d\n", rval);
-    LOGI(buffer); */
 
     return (jboolean)(rval == 0);
 }
@@ -84,36 +92,41 @@ static jboolean com_htc_net_wimax_startWimaxDaemon(JNIEnv* env, jobject clazz)
 static jboolean com_htc_net_wimax_stopWimaxDaemon(JNIEnv* env, jobject clazz)
 {
     int rval = ::stopWimaxDaemon();
-    /* char buffer[100];
-    sprintf (buffer, "com_htc_net_wimax_stopWimaxDaemon() - rval = %d\n", rval);
-    LOGI(buffer); */
 
     return (jboolean)(rval == 0);
 }
 
-static jboolean com_htc_net_wimax_getWimaxProp(JNIEnv* env, jobject clazz, jstring param1)
+// wimax properties
+static jstring com_htc_net_wimax_getWimaxProp(JNIEnv* env, jobject clazz, jstring param1)
 {
-    return (jboolean)(::getWimaxProp() == 0);
+   const char *nativeString = (env)->GetStringUTFChars(param1, 0);
+   char result_buffer[1024];
+   char prop[30];
+   strcpy(prop, nativeString);
+   memset(result_buffer, 0, 1024);
+   int result = ::getWimaxProp(prop, result_buffer);
+
+   return env->NewStringUTF(result_buffer);
 }
 
 static jboolean com_htc_net_wimax_setWimaxProp(JNIEnv* env, jobject clazz, jstring param1, jstring param2)
 {
     jboolean blnIsCopy;
-    const char* strCIn = (env)->GetStringUTFChars(param1 , &blnIsCopy);
-    const char* strCIn2 = (env)->GetStringUTFChars(param2 , &blnIsCopy);
+    const char *nativeString1 = (env)->GetStringUTFChars(param1, 0);
+    char prop[30];
+    strcpy (prop, nativeString1);
 
-    LOGD("com_htc_net_wimax_setWimaxProp() - param1 = ");
-    LOGD("com_htc_net_wimax_setWimaxProp() - param2 = ");
+    const char *nativeString2 = (env)->GetStringUTFChars(param2, 0);
+    char val[30];
+    strcpy (val, nativeString2);
 
-    return (jboolean)(::setWimaxProp() == 0);
+    return (jboolean)(::setWimaxProp(prop, val) == 0);
 }
 
-static jboolean com_htc_net_wimax_stopDhcpWimax(JNIEnv* env, jobject clazz)
+// dhcp
+static jboolean com_htc_net_wimax_stopDhcpWimaxDaemon(JNIEnv* env, jobject clazz)
 {
-    int rval = ::stopDhcpWimax();
-    /* char buffer[100];
-    sprintf (buffer, "com_htc_net_wimax_stopDhcpWimax() - rval = %d\n", rval);
-    LOGI(buffer); */
+    int rval = ::stopDhcpWimaxDaemon();
 
     return (jboolean)(rval == 0);
 }
@@ -121,11 +134,18 @@ static jboolean com_htc_net_wimax_stopDhcpWimax(JNIEnv* env, jobject clazz)
 static jboolean com_htc_net_wimax_startDhcpWimaxDaemon(JNIEnv* env, jobject clazz)
 {
     int rval = ::startDhcpWimaxDaemon();
-    /* char buffer[100];
-    sprintf (buffer, "com_htc_net_wimax_startDhcpWimaxDaemon() - rval = %d\n", rval);
-    LOGI(buffer); */
 
     return (jboolean)(rval == 0);
+}
+
+static jboolean com_htc_net_wimax_doWimaxDhcpRelease(JNIEnv* env, jobject clazz)
+{
+    return (jboolean)(::doWimaxDhcpRelease() == 0);
+}
+
+static jboolean com_htc_net_wimax_doWimaxDhcpRequest(JNIEnv* env, jobject clazz)
+{
+    return (jboolean)(::doWimaxDhcpRequest() == 0);
 }
 
 static jboolean com_htc_net_wimax_terminateProcess(JNIEnv* env, jobject clazz, jstring param1)
@@ -135,48 +155,48 @@ static jboolean com_htc_net_wimax_terminateProcess(JNIEnv* env, jobject clazz, j
    char pid[10];
    strcpy (pid, strCIn);
    int rval = ::terminateProcess(pid);
-   /* char buffer[100];
-   sprintf (buffer, "com_htc_net_wimax_terminateProcess() - rval = %d\n", rval);
-   LOGI(buffer); */
-   
+ 
    return (jboolean)(rval == 0);
 }
 
+// routing
 static jboolean com_htc_net_wimax_addRouteToGateway(JNIEnv* env, jobject clazz)
 {
     return (jboolean)(::addRouteToGateway() == 0);
 }
 
-static jboolean com_htc_net_wimax_dhcpRelease(JNIEnv* env, jobject clazz)
+// Random ;x
+static jboolean com_htc_net_wimax_testConnect(JNIEnv* env, jobject clazz)
 {
-    int rval = ::dhcpRelease();
-    /* char buffer[100];
-    sprintf (buffer, "com_htc_net_wimax_dhcpRelease() - rval = %d\n", rval);
-    LOGI(buffer); */
-
+    int rval = ::testConnect();
     return (jboolean)(rval == 0);
 }
 
-static jboolean com_htc_net_wimax_doWimaxDhcpRequest(JNIEnv* env, jobject clazz, jobject info)
+// interface sockets 
+static jboolean com_htc_net_wimax_ThpIoctl(JNIEnv* env, jobject clazz, jint cmd, jint arg)
 {
-    int result = 0;
-    //in_addr_t ipaddr, gateway, mask, dns1, dns2, server;
-    //uint32_t lease;
+    return (jboolean)(::thpIoctl(cmd, arg) == 0);
+}
 
-    //const char *nameStr = env->GetStringUTFChars(ifname, NULL);
-    //result = ::doWimaxDhcpRequest(nameStr, &ipaddr, &gateway, &mask,
-    //                                    &dns1, &dns2, &server, &lease);
-    //env->ReleaseStringUTFChars(ifname, nameStr);
-    //if (result == 0 && dhcpInfoFieldIds.dhcpInfoClass != NULL) {
-    //    env->SetIntField(info, dhcpInfoFieldIds.ipaddress, ipaddr);
-    //    env->SetIntField(info, dhcpInfoFieldIds.gateway, gateway);
-    //    env->SetIntField(info, dhcpInfoFieldIds.netmask, mask);
-    //    env->SetIntField(info, dhcpInfoFieldIds.dns1, dns1);
-    //    env->SetIntField(info, dhcpInfoFieldIds.dns2, dns2);
-    //    env->SetIntField(info, dhcpInfoFieldIds.serverAddress, server);
-    //    env->SetIntField(info, dhcpInfoFieldIds.leaseDuration, lease);
-    //}
-    return (jboolean)(result == 0);
+static jboolean com_htc_net_wimax_ConfigInterface(JNIEnv* env, jobject clazz)
+{
+    return (jboolean)(::wimaxConfigInterface() == 0);
+}
+
+// Debugging
+static jboolean com_htc_net_wimax_wimaxDumpKmsg(JNIEnv* env, jobject clazz)
+{
+    return (jboolean)(::wimaxDumpKmsg() == 0);
+}
+
+static jboolean com_htc_net_wimax_wimaxDumpLastKmsg(JNIEnv* env, jobject clazz)
+{
+    return (jboolean)(::wimaxDumpLastKmsg() == 0);
+}
+
+static jboolean com_htc_net_wimax_wimaxDumpLogcat(JNIEnv* env, jobject clazz)
+{
+    return (jboolean)(::wimaxDumpLogcat() == 0);
 }
 
 // ----------------------------------------------------------------------------
@@ -189,16 +209,25 @@ static JNINativeMethod gWimaxMethods[] = {
 
     { "LoadDriver", "()Z",  (void *)com_htc_net_wimax_loadWimaxDriver },
     { "UnloadDriver", "()Z",  (void *)com_htc_net_wimax_unloadWimaxDriver },
+    { "StartDriver", "()Z",  (void *)com_htc_net_wimax_startDriver },
+    { "StopDriver", "()Z",  (void *)com_htc_net_wimax_stopDriver },
     { "StartDaemon", "()Z",  (void *)com_htc_net_wimax_startWimaxDaemon },
     { "StopDaemon", "()Z",  (void *)com_htc_net_wimax_stopWimaxDaemon },
     { "getWimaxProp", "(Ljava/lang/String;)Ljava/lang/String;",  (void *)com_htc_net_wimax_getWimaxProp },
     { "setWimaxProp", "(Ljava/lang/String;Ljava/lang/String;)Z",  (void *)com_htc_net_wimax_setWimaxProp },
-    { "StopDhcpWimax", "()Z",  (void *)com_htc_net_wimax_stopDhcpWimax },
+    { "StopDhcpWimax", "()Z",  (void *)com_htc_net_wimax_stopDhcpWimaxDaemon },
     { "StartDhcpWimax", "()Z",  (void *)com_htc_net_wimax_startDhcpWimaxDaemon },
+    { "DoWimaxDhcpRequest", "()Z",  (void *)com_htc_net_wimax_doWimaxDhcpRequest },
+    { "DoWimaxDhcpRelease", "()Z",  (void *)com_htc_net_wimax_doWimaxDhcpRelease },
     { "TerminateProcess", "(Ljava/lang/String;)Z",  (void *)com_htc_net_wimax_terminateProcess },
     { "AddRouteToGateway", "()Z",  (void *)com_htc_net_wimax_addRouteToGateway },
-    { "DoWimaxDhcpRequest", "(Landroid/net/DhcpInfo;)Z",  (void *)com_htc_net_wimax_doWimaxDhcpRequest },
-    { "DoWimaxDhcpRelease", "()Z",  (void *)com_htc_net_wimax_dhcpRelease },
+    { "testConnect", "()Z",  (void *)com_htc_net_wimax_testConnect },
+    { "ThpIoctl", "(IJ)Z",  (void *)com_htc_net_wimax_ThpIoctl },
+    { "ConfigInterface", "()Z",  (void *)com_htc_net_wimax_ConfigInterface },
+    { "DumpKmsg", "()Z",  (void *)com_htc_net_wimax_wimaxDumpKmsg },
+    { "DumpLastKmsg", "()Z",  (void *)com_htc_net_wimax_wimaxDumpLastKmsg },
+    { "DumpLogcat", "()Z",  (void *)com_htc_net_wimax_wimaxDumpLogcat },
+
 };
 
 int registerNatives(JNIEnv* env)

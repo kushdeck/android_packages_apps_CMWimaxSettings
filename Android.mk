@@ -8,7 +8,7 @@ LOCAL_SRC_FILES := $(call all-java-files-under, src)
 LOCAL_PACKAGE_NAME := CMWimaxSettings
 LOCAL_CERTIFICATE := platform
 
-LOCAL_REQUIRED_MODULES := libwimax_jni
+LOCAL_REQUIRED_MODULES := libwimaxjni
 
 include $(BUILD_PACKAGE)
 
