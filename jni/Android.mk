@@ -11,7 +11,7 @@ LOCAL_SHARED_LIBRARIES := \
 
 LOCAL_C_INCLUDES := \
     $(call include-path-for, libhardware_legacy)/hardware_legacy \
-    frameworks/base/include \
+    frameworks/native/include \
     system/core/include
 
 LOCAL_PRELINK_MODULE := false
